@@ -1,4 +1,4 @@
-# Lotka-Volterra 2d (symmetric Lagrangian) with Gauss-Legendre VPRK Integrators
+# Lotka-Volterra 2d (singular Lagrangian) with Gauss-Legendre VPRK Integrators
 
 ```julia
 run_list(iodeproblem(timestep = Δt, timespan = (0.0, Δt * nt)), :TableauVPRK, tableaus_vprk_glrk())

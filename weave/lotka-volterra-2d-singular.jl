@@ -16,3 +16,12 @@ weave("weave/lotka-volterra-2d-singular-srk.jmd",
          doctype = "github",
          mod = LotkaVolterra2dSingularDVI)
 
+weave("weave/lotka-volterra-2d-singular-firk.jmd",
+         out_path = "build/lotka-volterra-2d-singular",
+         doctype = "github",
+         mod = LotkaVolterra2dSingularDVI)
+
+weave("weave/lotka-volterra-2d-singular-vprk-gauss.jmd",
+         out_path = "build/lotka-volterra-2d-singular",
+         doctype = "github",
+         mod = LotkaVolterra2dSingularDVI)

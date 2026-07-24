@@ -3,8 +3,17 @@ module DegenerateVariationalIntegrators
     include("common.jl")
     include("tableau_lists.jl")
 
-    export tableaus_vprk_glrk,
+    # Makie themes set in a module body are applied during precompilation only, so the
+    # shared plotting style has to be activated when the module is loaded.
+    __init__() = set_theme!(PLOT_THEME)
+
+    export tableaus_dvi,
+           tableaus_vprk_glrk,
            tableaus_srk_glrk,
            tableaus_firk_glrk
+
+    # `run_list` is deliberately *not* exported: every problem module in `src/<problem>.jl`
+    # defines its own three-argument `run_list` that binds the problem's plot recipes, and
+    # scripts commonly `using` both this package and a problem module.
 
 end

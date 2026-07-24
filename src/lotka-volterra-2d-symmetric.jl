@@ -3,23 +3,22 @@ module LotkaVolterra2dSymmetricDVI
     const Δt = 0.1
     const nt = 100000
 
-    const PLOT_DIR = "figures"
-    const SYMP_DIR = "symplecticity"
-
-    ENV["GKSwstype"] = "nul"
-    
     using GeometricIntegrators
-    using Plots
-    using SimpleSolvers
 
     using GeometricProblems.LotkaVolterra2dSymmetric
-    using GeometricProblems.LotkaVolterra2dPlots
+    # Both Lotka-Volterra gauges share the plot recipes of the standard problem.
+    using GeometricProblems.LotkaVolterra2d: plot_solution, plot_phase_portrait, plot_traces
 
-    SimpleSolvers.set_config(:nls_atol, 1E-14)
-    SimpleSolvers.set_config(:nls_rtol, 1E-14)
-    SimpleSolvers.set_config(:nls_nmax, 100);
+    import DegenerateVariationalIntegrators as DVI
+    using DegenerateVariationalIntegrators: tableaus_dvi, tableaus_vprk_glrk,
+        tableaus_srk_glrk, tableaus_firk_glrk
 
-    include("common.jl")
-    include("tableau_lists.jl")
+    const PLOT_RECIPES = (solution       = plot_solution,
+                          phase_portrait = plot_phase_portrait,
+                          traces         = plot_traces)
+
+    run_list(args...; kwargs...) = DVI.run_list(PLOT_RECIPES, args...; kwargs...)
+
+    export run_list
 
 end

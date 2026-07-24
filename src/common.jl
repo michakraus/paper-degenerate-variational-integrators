@@ -1,201 +1,301 @@
-using Documenter
-using Latexify
+
+using Logging
 using Markdown
 using Markdown: MD, Paragraph, LineBreak
-using Plots
+
+using CairoMakie
 
 using GeometricIntegrators
-using GeometricIntegrators.Integrators.VPRK
+import GeometricIntegratorsBase
+const GIB = GeometricIntegratorsBase
+using SimpleSolvers: NonlinearSolverException
 
-using GeometricProblems.Diagnostics
-using GeometricProblems.PlotRecipes
+using GeometricProblems.Diagnostics: plot_energy_error, plot_energy_drift, plot_constraint_error
 
 
-function Integrators.integrate!(int::Union{IntegratorVPRK,IntegratorFIRKimplicit,IntegratorSRKimplicit}, sol::Solution)
-    asol = AtomicSolution(sol, int)
+# Output directories for the figures (and, for symmetry with the SPARK companion package,
+# the symplecticity conditions, which are not computed here).
+const PLOT_DIR = "figures"
+const SYMP_DIR = "symplecticity"
 
-    # loop over initial conditions showing progress bar
-    for m in eachsample(sol)
-        get_initial_conditions!(sol, asol, m, 1)
-        initialize!(int, asol)
 
-        n = 0
-        try
-            for outer n in eachtimestep(sol)
-                integrate!(int, sol, asol, m, n)
-            end
-        catch ex
-            tstr = " in time step " * string(n)
-        
-            if nsamples(sol) > 1
-                tstr *= " for initial condition " * string(m)
-            end
-            
-            tstr *= "."
-            
-            if isa(ex, DomainError)
-                show(stdout, "text/markdown", Markdown.parse("DOMAIN ERROR: Simulation crashed" * tstr))
-                @warn("DOMAIN ERROR: Simulation crashed" * tstr)
-            elseif isa(ex, NonlinearSolverException)
-                show(stdout, "text/markdown", Markdown.parse("SOLVER ERROR: Simulation crashed" * tstr))
-                show(stdout, "text/markdown", Markdown.parse(ex.msg))
-                @warn("SOLVER ERROR: Simulation crashed" * tstr)
-                @warn(ex.msg)
-            else
-                show(stdout, "text/markdown", Markdown.parse("ERROR: Simulation crashed with $(typeof(ex)) " * tstr))
-                show(stdout, "text/markdown", Markdown.parse(ex.msg))
-                @warn("ERROR: Simulation crashed with $(typeof(ex)) " * tstr)
-                @warn(ex.msg)
-                # showerror(stdout, ex, catch_backtrace())
-            end
-        end
-    end
-
-    nothing
-end
+# Shared Makie plotting style (kept identical to the SRK and SPARK companion packages).
+# Larger fonts and thicker lines than the Makie defaults, tuned for the fixed figure sizes
+# of the GeometricProblems plot recipes. Unicode axis labels are selected via `latex=false`
+# on every plot call below.
+# The theme is activated in the module's `__init__` (a `set_theme!` in the module body
+# would only run during precompilation and have no effect at runtime).
+const PLOT_THEME = Theme(
+    fontsize = 18,
+    Lines    = (linewidth = 2,),
+    Scatter  = (markersize = 10,),
+    Axis     = (
+        xlabelsize     = 22,
+        ylabelsize     = 22,
+        xticklabelsize = 16,
+        yticklabelsize = 16,
+        titlesize      = 20,
+    ),
+)
 
 
 _linebreak(io) = show(io, "text/markdown", MD(Paragraph([LineBreak()])))
 
 
-function _plot_figure_md(file, name, filename)
-    # if isfile(filename)
-        show(file, "text/markdown", Markdown.parse("![$name]($filename)"))
-        _linebreak(file)
-    # else
-    #     show(stdout, "text/markdown", Markdown.parse("ERROR: Plot output $filename does not exist!"))
-    #     @warn("Plot output $filename does not exist!")
-    # end
+# The degenerate Lagrangians make some of the methods diverge. The Newton solver then
+# fails its line search in every iteration of every time step and `SimpleSolvers` emits
+# one warning per failure: in the SPARK companion package this drowned a CI run in 173000
+# of them, 99% of a 174583-line log. The warning cannot be switched off through the solver
+# interface — `NewtonSolver` builds its `Linesearch` without forwarding the option
+# keywords, so the line search always ends up with a default `Options` and
+# `verbosity = 1` — hence we filter it out on the logging side instead, and likewise the
+# equally repetitive tick warnings from the plotting stack. Only the count is reported, by
+# `run_list`.
+const QUIET_LOG_MODULES = (:SimpleSolvers, :PlotUtils, :Makie)
+const QUIET_LOG_COUNT = Ref(0)
+
+struct QuietLogger{L<:AbstractLogger} <: AbstractLogger
+    parent::L
+end
+
+function Logging.shouldlog(logger::QuietLogger, level, _module, group, id)
+    if level < Logging.Error && nameof(_module) ∈ QUIET_LOG_MODULES
+        QUIET_LOG_COUNT[] += 1
+        return false
+    end
+    Logging.shouldlog(logger.parent, level, _module, group, id)
+end
+
+Logging.min_enabled_level(logger::QuietLogger) = Logging.min_enabled_level(logger.parent)
+Logging.catch_exceptions(logger::QuietLogger) = Logging.catch_exceptions(logger.parent)
+Logging.handle_message(logger::QuietLogger, args...; kwargs...) =
+    Logging.handle_message(logger.parent, args...; kwargs...)
+
+# Install the filter. Called by the weave driver, not on load, so that interactive
+# sessions keep the warnings unless they ask for quiet.
+quiet_solver_warnings!() = global_logger(QuietLogger(global_logger()))
+
+
+# Integrate an IODE step-by-step so that a crash (solver failure, singular matrix,
+# NaNs, …) does not discard the whole run: we keep the solution up to the last
+# successful time step. Returns `(sol, last_good, err)` where `last_good` is the index
+# of the last completed step and `err` is `nothing` (success), `:nan` (NaNs in the
+# state), or the caught exception. The steps after `last_good` are padded with the last
+# good state so downstream invariant computations never see uninitialized data.
+function integrate_partial(iode, method)
+    int     = GIB.GeometricIntegrator(iode, method; f_abstol=1E-14, f_reltol=1E-14, max_iterations=100)
+    sol     = GIB.Solution(iode)
+    solstep = GIB.solutionstep(int, sol[0])
+    state   = GIB.current(solstep)
+    nt      = GIB.ntime(sol)
+
+    last_good = 0
+    err = nothing
+
+    try
+        for n in 1:nt
+            GIB.reset!(solstep, GIB.timesteps(sol)[n])
+            GIB.integrate!(solstep, int)
+            if isnan(state)
+                err = :nan
+                break
+            end
+            copy!(sol, state, n)
+            last_good = n
+        end
+    catch ex
+        err = ex
+    end
+
+    for n in (last_good+1):nt
+        sol.q[n] = copy(sol.q[last_good])
+        sol.p[n] = copy(sol.p[last_good])
+    end
+
+    (sol, last_good, err)
 end
 
 
+# Short, human-readable one-line description of a crash (no stack trace).
+function _failure_message(err)
+    err === :nan                      && return "NaNs detected in the solution"
+    err isa NonlinearSolverException  && return "solver error – " * err.msg
+    err isa DomainError               && return "domain error"
+    return string(nameof(typeof(err)))
+end
+
+
+# Reference a figure, but only if it was actually produced: a run that crashed early has
+# no energy drift data, and one that crashed on the very first step has no figures at
+# all. Referencing them regardless leaves broken images on the page and one
+# `invalid local link/image` warning per figure in the Documenter build. Returns whether
+# the reference was written.
+function _plot_figure_md(file, name, filename)
+    isfile(filename) || return false
+
+    show(file, "text/markdown", Markdown.parse("![$name]($filename)"))
+    _linebreak(file)
+
+    true
+end
+
+
+# Write the page collecting all figures of one run. Must be called *after* `run_integrator`,
+# so that the figures it references already exist on disk.
 function write_plots(dir, file, name, fig_suff)
 
     plot_file = file * ".md"
+    omitted = 0
 
     open(plot_file, "w") do f
+        figure(suffix) = _plot_figure_md(f, name, "$(dir)/$(file)$(suffix)$(fig_suff)") || (omitted += 1)
+
         show(f, "text/markdown", Markdown.parse("# $name"))
         _linebreak(f)
 
-        _plot_figure_md(f, name, "$(dir)/$(file)_solution$(fig_suff)")
-        _plot_figure_md(f, name, "$(dir)/$(file)_traces$(fig_suff)")
+        figure("_solution")
+        figure("_traces")
 
         show(f, "text/markdown", Markdown.parse("## Energy Error"))
         _linebreak(f)
 
-        _plot_figure_md(f, name, "$(dir)/$(file)_energy_error$(fig_suff)")
-        _plot_figure_md(f, name, "$(dir)/$(file)_energy_drift$(fig_suff)")
-        
+        figure("_energy_error")
+        figure("_energy_drift")
+
         show(f, "text/markdown", Markdown.parse("## Constraint"))
         _linebreak(f)
-        
-        _plot_figure_md(f, name, "$(dir)/$(file)_constraint_error$(fig_suff)")
-    end
-end
 
-
-function plot(sol, equ, dir, file, fig_suff)
-    if !isdir(dir)
-        mkdir(dir)
+        figure("_constraint_error")
     end
 
-    try
-        plot_lotka_volterra_2d(sol, equ; nt=lastentry(sol), fmt=:png)
-        savefig(dir * "/" * file * fig_suff)
-
-        plot_lotka_volterra_2d_solution(sol, equ; nt=lastentry(sol), fmt=:png)
-        savefig(dir * "/" * file * "_solution" * fig_suff)
-
-        plot_lotka_volterra_2d_traces(sol, equ; nt=lastentry(sol), fmt=:png)
-        savefig(dir * "/" * file * "_traces" * fig_suff)
-
-        H, ΔH = compute_energy_error(sol.t, sol.q, equ.parameters)
-        plotenergyerror(sol.t, ΔH; nt=lastentry(sol), fmt=:png)
-        savefig(dir * "/" * file * "_energy_error" * fig_suff)
-
-        plotenergydrift(compute_error_drift(sol.t, ΔH, div(ntime(sol), 10))...; nt=lastentry(sol))
-        savefig(dir * "/" * file * "_energy_drift" * fig_suff)
-
-        plotconstrainterror(sol.t, compute_momentum_error(sol.t, sol.q, sol.p, (t,q,k)->ϑ(t,q,equ.parameters,k)); nt=lastentry(sol), fmt=:png)
-        savefig(dir * "/" * file * "_constraint_error" * fig_suff)
-    catch ex
-        if isa(ex, DomainError)
-            show(stdout, "text/markdown", Markdown.parse("ERROR: Diagnostics crashed with DomainError."))
-            @warn("ERROR: Diagnostics crashed with DomainError.")
-        else
-            show(stdout, "text/markdown", Markdown.parse("ERROR: Plot crashed with $(typeof(ex))"))
-            show(stdout, "text/markdown", Markdown.parse(ex.msg))
-            @warn("ERROR: Plot crashed with $(typeof(ex))")
-            @warn(ex.msg)
-            showerror(stdout, ex, catch_backtrace())
-        end
-    end
-end
-
-
-function run_integrator(iode, tab, integrator, nt, dir, file, fig_suff)
-    sol = Solution(iode, Δt, nt)
-    int = integrator(iode, tab, Δt)
-
-    integrate!(int, sol)
-
-    plot(sol, iode, dir, file, fig_suff)
-end
-
-
-function run_list(iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYMP_DIR;
-                    fig_suff = ".png")
-
-    for run in list
-        tab, file = run
-
-        if length(run) ≥ 3
-            integrator = run[3]
-        else
-            integrator = Integrator
-        end
-        
-        write_plots(plot_dir, file, name, fig_suff)
-
-        show(stdout, "text/markdown", Markdown.parse("## $(tab.name)"))
-        _linebreak(stdout)
-
-        show(stdout, "text/markdown", Markdown.parse("[Plots]($file.md)"))
-        _linebreak(stdout)
-
-        run_integrator(iode, tab, integrator, nt, plot_dir, file, fig_suff)
-        show(stdout, "text/markdown", Markdown.parse("![$name]($plot_dir/$file$fig_suff)"))
-    end
+    omitted > 0 && @warn("Omitted $(omitted) figures from $(plot_file) that were not produced")
 
     nothing
 end
 
 
-function run_single_integrator(iode, integrator, nt, factor, dir, file, fig_suff)
-    sol = Solution(iode, Δt/factor, nt*factor)
-    int = integrator(iode, Δt/factor)
-
-    integrate!(int, sol)
-
-    plot(sol, iode, dir, file, fig_suff)
+# Save the figure produced by `plot` as `<dir>/<file><suffix><fig_suff>`. A failure is
+# reported but not propagated: one diagnostic that cannot be plotted (which happens for
+# runs that crash after very few time steps) must not cost us the remaining figures.
+function _save_plot(plot, dir, file, suffix, fig_suff)
+    try
+        save(dir * "/" * file * suffix * fig_suff, plot())
+    catch ex
+        show(stdout, "text/markdown",
+             Markdown.parse("**Plotting $(file)$(suffix) failed: $(_failure_message(ex)).**"))
+        _linebreak(stdout)
+        @warn("Plotting $(file)$(suffix) failed: $(_failure_message(ex))")
+    end
 end
 
 
-function run_single(iode::Equation, name::Symbol, integrator, factor = 1, plot_dir = PLOT_DIR, symp_dir = SYMP_DIR;
+# Plot the solution up to time step `last_good` (`:auto` plots the whole solution). All
+# time-trace panels are limited to `last_good` and share the full-tspan x-axis, so a
+# partial run shows its trajectory up to the crash within the complete time interval.
+# `recipes` is a named tuple `(solution, phase_portrait, traces)` of the problem-specific
+# GeometricProblems plot recipes; the remaining diagnostics are problem-agnostic.
+function make_plots(sol, equ, recipes, dir, file, fig_suff, last_good)
+    if !isdir(dir)
+        mkdir(dir)
+    end
+
+    nt      = ntime(sol)
+    ntplot  = last_good ≥ nt ? (:auto) : last_good
+
+    # All GeometricProblems recipes set their own x-limits to the plotted time range, so no
+    # post-processing is needed here.
+    _save_plot(() -> recipes.solution(sol, equ; latex=false, nt=ntplot), dir, file, "", fig_suff)
+    _save_plot(() -> recipes.phase_portrait(sol; latex=false, nt=ntplot), dir, file, "_solution", fig_suff)
+    _save_plot(() -> recipes.traces(sol, equ; latex=false, nt=ntplot), dir, file, "_traces", fig_suff)
+    _save_plot(() -> plot_energy_error(sol; latex=false, nt=ntplot), dir, file, "_energy_error", fig_suff)
+
+    # Drift is an interval-based diagnostic: `plot_energy_drift` splits the solution into ten
+    # intervals and its `nt` counts those intervals, not time steps. Show only the intervals
+    # completed before a crash – and skip the plot unless at least two of them were
+    # completed, as a single point has no drift to show and a degenerate x-range throws.
+    # Solutions shorter than ten steps have no intervals at all and make the recipe itself
+    # divide by zero, so they are skipped outright (short runs only happen in local tests).
+    interval = max(div(nt, 10), 1)
+    ntdrift  = last_good ≥ nt ? (:auto) : div(last_good, interval)
+
+    if nt ≥ 10 && (ntdrift === :auto || ntdrift ≥ 2)
+        _save_plot(() -> plot_energy_drift(sol; latex=false, nt=ntdrift), dir, file, "_energy_drift", fig_suff)
+    end
+
+    _save_plot(() -> plot_constraint_error(sol; latex=false, nt=ntplot), dir, file, "_constraint_error", fig_suff)
+end
+
+
+function run_integrator(iode, method, recipes, dir, file, fig_suff)
+    sol, last_good, err = integrate_partial(iode, method)
+
+    if err !== nothing
+        show(stdout, "text/markdown",
+             Markdown.parse("**Simulation crashed after $(last_good) of $(ntime(sol)) time steps: $(_failure_message(err)).**"))
+        _linebreak(stdout)
+        @warn("Simulation crashed after $(last_good) of $(ntime(sol)) time steps: $(_failure_message(err))")
+    end
+
+    # Plot whatever was computed (the trajectory up to the last successful step).
+    if last_good ≥ 1
+        make_plots(sol, iode, recipes, dir, file, fig_suff, last_good)
+    end
+end
+
+
+# Headline of a single run. `DVRK` wraps an inner tableau (e.g. `DVRK(Gauss(1))`), which is
+# shown explicitly; the degenerate variational integrators of the paper (`DVIA`, `DVIB`,
+# `CTDVI`, `CMDVI`) have no tableau at all, in which case `tableau` returns `missing`; every
+# other method is shown as `Name(s)` (e.g. `VPRKGauss(2)`, `Gauss(2)`). `DVRK` is itself a
+# `DVIMethod`, so it has to be matched first.
+function _headline(method)
+    method isa DVRK             && return "DVRK($(tableau(method).name)($(tableau(method).s)))"
+    tableau(method) === missing && return "$(nameof(typeof(method)))"
+    return "$(nameof(typeof(method)))($(tableau(method).s))"
+end
+
+
+# `recipes` comes first so that the problem modules in `src/<problem>.jl` can bind it with a
+# one-line wrapper `run_list(args...; kwargs...) = DVI.run_list(PLOT_RECIPES, args...; kwargs...)`.
+function run_list(recipes, iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYMP_DIR;
                     fig_suff = ".png")
 
-    file = string(name)
+    for run in list
+        method, file = run[1], run[2]
 
-    write_plots(plot_dir, file, name, fig_suff)
+        # The first-order methods `DVIA` and `DVIB` are integrated with a proportionally
+        # finer time step over the same time interval, as in the paper. An optional third
+        # element of the list entry gives that refinement factor; `similar` retains
+        # everything else of the problem, in particular its time span, so that the number of
+        # time steps grows by the same factor.
+        factor  = length(run) ≥ 3 ? run[3] : 1
+        problem = factor == 1 ? iode : similar(iode; timestep = timestep(iode) / factor)
 
-    show(stdout, "text/markdown", Markdown.parse("## $(name)"))
-    _linebreak(stdout)
+        headline = _headline(method) * (factor == 1 ? "" : " with Δt/$(factor)")
 
-    show(stdout, "text/markdown", Markdown.parse("[Plots]($file.md)"))
-    _linebreak(stdout)
+        show(stdout, "text/markdown", Markdown.parse("## $(headline)"))
+        _linebreak(stdout)
 
-    run_single_integrator(iode, integrator, nt, factor, plot_dir, file, fig_suff)
-    show(stdout, "text/markdown", Markdown.parse("![$name]($plot_dir/$file$fig_suff)"))
+        show(stdout, "text/markdown", Markdown.parse("[Plots]($file.md)"))
+        _linebreak(stdout)
+
+        run_integrator(problem, method, recipes, plot_dir, file, fig_suff)
+
+        # The page of figures is written only now, so that it can leave out the ones this
+        # run did not produce; same for the overview figure embedded here.
+        write_plots(plot_dir, file, name, fig_suff)
+
+        overview = "$plot_dir/$file$fig_suff"
+        isfile(overview) && show(stdout, "text/markdown", Markdown.parse("![$name]($overview)"))
+
+        # Each run leaves a set of Makie figures behind; collecting them here keeps the
+        # peak footprint of a list of up to fifty methods within what a CI runner can hold.
+        GC.gc()
+    end
+
+    if QUIET_LOG_COUNT[] > 0
+        @info("Suppressed $(QUIET_LOG_COUNT[]) solver/plotting warnings so far (see QUIET_LOG_MODULES)")
+    end
 
     nothing
 end

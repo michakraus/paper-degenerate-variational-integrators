@@ -1,36 +1,46 @@
 
-using GeometricIntegrators.Integrators
-using GeometricIntegrators.Tableaus
+# The degenerate variational integrators of the paper. `DVIA` and `DVIB` are of first order
+# and therefore integrated with a ten times finer time step over the same time interval (the
+# third element of the entry), as in the paper; `CTDVI` and `CMDVI` are of second order and
+# run with the same time step as the Runge-Kutta methods below.
+function tableaus_dvi()
+    (
+        ( DVIA(),                "dvia",  10 ),
+        ( DVIB(),                "dvib",  10 ),
+        ( CTDVI(),               "ctdvi"      ),
+        ( CMDVI(),               "cmdvi"      ),
+    )
+end
 
 function tableaus_vprk_glrk()
     (
-        ( TableauVPGLRK(1),          "vprk_glrk1" ),
-        ( TableauVPGLRK(2),          "vprk_glrk2" ),
-        ( TableauVPGLRK(3),          "vprk_glrk3" ),
-        ( TableauVPGLRK(4),          "vprk_glrk4" ),
-        ( TableauVPGLRK(5),          "vprk_glrk5" ),
-        ( TableauVPGLRK(6),          "vprk_glrk6" ),
+        ( VPRKGauss(1),          "vprk_gauss1" ),
+        ( VPRKGauss(2),          "vprk_gauss2" ),
+        ( VPRKGauss(3),          "vprk_gauss3" ),
+        ( VPRKGauss(4),          "vprk_gauss4" ),
+        ( VPRKGauss(5),          "vprk_gauss5" ),
+        ( VPRKGauss(6),          "vprk_gauss6" ),
     )
 end
 
 function tableaus_srk_glrk()
     (
-        ( TableauGauss(1),          "srk_glrk1",      IntegratorSRKimplicit ),
-        ( TableauGauss(2),          "srk_glrk2",      IntegratorSRKimplicit ),
-        ( TableauGauss(3),          "srk_glrk3",      IntegratorSRKimplicit ),
-        ( TableauGauss(4),          "srk_glrk4",      IntegratorSRKimplicit ),
-        ( TableauGauss(5),          "srk_glrk5",      IntegratorSRKimplicit ),
-        ( TableauGauss(6),          "srk_glrk6",      IntegratorSRKimplicit ),
+        ( DVRK(Gauss(1)),        "srk_gauss1" ),
+        ( DVRK(Gauss(2)),        "srk_gauss2" ),
+        ( DVRK(Gauss(3)),        "srk_gauss3" ),
+        ( DVRK(Gauss(4)),        "srk_gauss4" ),
+        ( DVRK(Gauss(5)),        "srk_gauss5" ),
+        ( DVRK(Gauss(6)),        "srk_gauss6" ),
     )
 end
 
 function tableaus_firk_glrk()
     (
-        ( TableauGauss(1),          "firk_glrk1",     IntegratorFIRKimplicit ),
-        ( TableauGauss(2),          "firk_glrk2",     IntegratorFIRKimplicit ),
-        ( TableauGauss(3),          "firk_glrk3",     IntegratorFIRKimplicit ),
-        ( TableauGauss(4),          "firk_glrk4",     IntegratorFIRKimplicit ),
-        ( TableauGauss(5),          "firk_glrk5",     IntegratorFIRKimplicit ),
-        ( TableauGauss(6),          "firk_glrk6",     IntegratorFIRKimplicit ),
+        ( Gauss(1),              "firk_gauss1" ),
+        ( Gauss(2),              "firk_gauss2" ),
+        ( Gauss(3),              "firk_gauss3" ),
+        ( Gauss(4),              "firk_gauss4" ),
+        ( Gauss(5),              "firk_gauss5" ),
+        ( Gauss(6),              "firk_gauss6" ),
     )
 end

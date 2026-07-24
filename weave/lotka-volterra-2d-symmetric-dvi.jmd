@@ -1,4 +1,4 @@
-# Lotka-Volterra 2d (singular Lagrangian) with Degenerate Variational Integrators
+# Lotka-Volterra 2d (symmetric Lagrangian) with Degenerate Variational Integrators
 
 ```julia
 run_list(iodeproblem(timestep = Δt, timespan = (0.0, Δt * nt)), :DVI, tableaus_dvi())
