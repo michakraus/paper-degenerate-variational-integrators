@@ -1,0 +1,8 @@
+# Lotka-Volterra 2d (singular Lagrangian) with Degenerate Variational Integrators
+
+```julia
+run_single(lotka_volterra_2d_iode(), :DVI1A, IntegratorDVIA, 10)
+run_single(lotka_volterra_2d_iode(), :DVI1B, IntegratorDVIB, 10)
+run_single(lotka_volterra_2d_iode(), :DGTDVI, IntegratorCTDVI)
+run_single(lotka_volterra_2d_iode(), :DGMDVI, IntegratorCMDVI)
+```
