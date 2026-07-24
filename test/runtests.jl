@@ -1,41 +1,45 @@
 
 using Test
 using GeometricIntegrators
-using GeometricProblems.LotkaVolterra2d
-using GeometricProblems.LotkaVolterra2d: Δt
+import GeometricProblems
 using DegenerateVariationalIntegrators
 
 const tableaus = (
-    tableaus_vprk_glrk(),
-    tableaus_srk_glrk(),
-    tableaus_firk_glrk(),
+    "Degenerate Variational"   => tableaus_dvi(),
+    "Gauss-Legendre SRK"       => tableaus_srk_glrk(),
+    "Gauss-Legendre FIRK"      => tableaus_firk_glrk(),
+    "Gauss-Legendre VPRK"      => tableaus_vprk_glrk(),
 )
 
-const iode = lotka_volterra_2d_iode()
 const nt = 1
 
-for list in tableaus
-    for run in list
-        tab, file = run
+# Both problem modules export `iodeproblem` and `Δt`, so they are addressed by their module.
+const problems = (
+    GeometricProblems.LotkaVolterra2dSingular,
+    GeometricProblems.LotkaVolterra2dSymmetric,
+)
 
-        if length(run) ≥ 3
-            integrator = run[3]
-        else
-            integrator = Integrator
-        end
+# Integrate a single time step. A `DomainError` is a legitimate outcome for these
+# degenerate Lagrangians – a stage value may leave the domain of the logarithm – and is
+# tolerated; every other exception propagates and fails the test.
+function integrates(iode, method)
+    try
+        integrate(iode, method; f_abstol = 1E-14, f_reltol = 1E-14, max_iterations = 100)
+    catch ex
+        ex isa DomainError || rethrow()
+    end
+    return true
+end
 
-        @test_nowarn begin
-            sol = Solution(iode, Δt, nt)
-            int = integrator(iode, tab, Δt)
-            try
-                integrate!(int, sol)
-            catch ex
-                if isa(ex, DomainError)
-                    @warn("DOMAIN ERROR: Integrator crashed")
-                else
-                    throw(ex)
-                end
-            end
+@testset "$(nameof(problem))" for problem in problems
+    iode = problem.iodeproblem(; timestep = problem.Δt, timespan = (0.0, nt * problem.Δt))
+
+    @testset "$(family)" for (family, list) in tableaus
+        # Methods that carry a time step refinement factor are integrated on the refined
+        # problem, exactly as `run_list` does.
+        @testset "$(run[2])" for run in list
+            factor = length(run) ≥ 3 ? run[3] : 1
+            @test integrates(similar(iode; timestep = timestep(iode) / factor), run[1])
         end
     end
 end
