@@ -8,7 +8,7 @@ This packages serves to document the examples from the paper *Degenerate Variati
 The integrators are implemented in [GeometricIntegrators.jl](https://github.com/JuliaGNI/GeometricIntegrators.jl) and the example problems in [GeometricProblems.jl](https://github.com/JuliaGNI/GeometricProblems.jl).
 The corresponding plots can be found in the [documentation](https://michakraus.github.io/paper-degenerate-variational-integrators/stable).
 
-The degenerate variational integrators of the paper are the methods `DVIA` and `DVIB` (first order) as well as `CTDVI` and `CMDVI` (second order). They are compared against the symplectic Gauss-Legendre Runge-Kutta methods `DVRK(Gauss(s))`, the Gauss-Legendre Runge-Kutta methods `Gauss(s)` and the Gauss-Legendre variational partitioned Runge-Kutta methods `VPRKGauss(s)`, each applied to both the singular and the symmetric Lagrangian of the two-dimensional Lotka-Volterra model.
+The degenerate variational integrators of the paper are the methods `DVIA` and `DVIB` (first order) as well as `CTDVI` and `CMDVI` (second order). They are compared against the symplectic Gauss-Legendre Runge-Kutta methods `DVRK(Gauss(s))`, the Gauss-Legendre Runge-Kutta methods `Gauss(s)` and the Gauss-Legendre variational partitioned Runge-Kutta methods `VPRKGauss(s)`, each applied to two example systems in two gauges each: the two-dimensional Lotka-Volterra model with its singular and its symmetric Lagrangian, and the massless charged particle in 2d with its singular (one-component) and its standard (two-component) vector potential.
 
 ## Reproducing the Figures
 
@@ -17,14 +17,16 @@ Weave all pages of one example into `build/`:
 ```
 make lvsingular
 make lvsymmetric
+make mcpsingular
+make mcpstandard
 ```
 
-Build the documentation, including all figures, in `docs/build/` (`-j8` weaves the eight
+Build the documentation, including all figures, in `docs/build/` (`-j16` weaves the sixteen
 pages in parallel):
 
 ```
 cd docs
-make -j8 weave
+make -j16 weave
 make documenter
 ```
 

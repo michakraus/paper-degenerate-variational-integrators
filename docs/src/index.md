@@ -2,7 +2,7 @@
 
 This packages serves to document the examples from the paper *Degenerate Variational Integrators*. The integrators are implemented in [GeometricIntegrators.jl](https://github.com/JuliaGNI/GeometricIntegrators.jl) and the example problems in [GeometricProblems.jl](https://github.com/JuliaGNI/GeometricProblems.jl).
 
-The degenerate variational integrators of the paper are the methods `DVIA` and `DVIB` (first order, integrated with a ten times smaller time step here) as well as `CTDVI` and `CMDVI` (second order). They are compared against the symplectic Gauss-Legendre Runge-Kutta methods `DVRK(Gauss(s))`, the Gauss-Legendre Runge-Kutta methods `Gauss(s)` and the Gauss-Legendre variational partitioned Runge-Kutta methods `VPRKGauss(s)`, all for `s = 1, …, 6`.
+The degenerate variational integrators of the paper are the methods `DVIA` and `DVIB` (first order, integrated with a ten times smaller time step here) as well as `CTDVI` and `CMDVI` (second order). They are compared against the symplectic Gauss-Legendre Runge-Kutta methods `DVRK(Gauss(s))`, the Gauss-Legendre Runge-Kutta methods `Gauss(s)` and the Gauss-Legendre variational partitioned Runge-Kutta methods `VPRKGauss(s)`, all for `s = 1, …, 6`. Every method family is applied to two example systems in two gauges each: the two-dimensional Lotka-Volterra model with its singular and its symmetric Lagrangian, and the massless charged particle in 2d with its singular (one-component) and its standard (two-component) vector potential.
 
 ## Numerical Examples
 
@@ -19,6 +19,20 @@ The degenerate variational integrators of the paper are the methods `DVIA` and `
 * [Symplectic Gauss-Legendre Runge-Kutta Methods](lotka-volterra-2d-symmetric/lotka-volterra-2d-symmetric-srk.md)
 * [Gauss-Legendre Runge-Kutta Methods](lotka-volterra-2d-symmetric/lotka-volterra-2d-symmetric-firk.md)
 * [Gauss-Legendre VPRK Methods](lotka-volterra-2d-symmetric/lotka-volterra-2d-symmetric-vprk-gauss.md)
+
+### Massless Charged Particle (singular vector potential)
+
+* [Degenerate Variational Integrators](massless-charged-particle-singular/massless-charged-particle-singular-dvi.md)
+* [Symplectic Gauss-Legendre Runge-Kutta Methods](massless-charged-particle-singular/massless-charged-particle-singular-srk.md)
+* [Gauss-Legendre Runge-Kutta Methods](massless-charged-particle-singular/massless-charged-particle-singular-firk.md)
+* [Gauss-Legendre VPRK Methods](massless-charged-particle-singular/massless-charged-particle-singular-vprk-gauss.md)
+
+### Massless Charged Particle (standard vector potential)
+
+* [Degenerate Variational Integrators](massless-charged-particle-standard/massless-charged-particle-standard-dvi.md)
+* [Symplectic Gauss-Legendre Runge-Kutta Methods](massless-charged-particle-standard/massless-charged-particle-standard-srk.md)
+* [Gauss-Legendre Runge-Kutta Methods](massless-charged-particle-standard/massless-charged-particle-standard-firk.md)
+* [Gauss-Legendre VPRK Methods](massless-charged-particle-standard/massless-charged-particle-standard-vprk-gauss.md)
 
 
 ## References

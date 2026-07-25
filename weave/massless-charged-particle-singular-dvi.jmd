@@ -1,0 +1,5 @@
+# Massless Charged Particle (singular vector potential) with Degenerate Variational Integrators
+
+```julia
+run_list(iodeproblem(timestep = Δt, timespan = (0.0, Δt * nt)), :DVI, tableaus_dvi())
+```

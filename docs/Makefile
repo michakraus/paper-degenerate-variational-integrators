@@ -1,6 +1,8 @@
 
 PROBLEMS = lotka-volterra-2d-singular \
-           lotka-volterra-2d-symmetric
+           lotka-volterra-2d-symmetric \
+           massless-charged-particle-singular \
+           massless-charged-particle-standard
 
 PAGES = dvi \
         srk \
@@ -8,7 +10,7 @@ PAGES = dvi \
         vprk-gauss
 
 # One target per woven page, mirroring the matrix of .github/workflows/Documentation.yaml:
-# `make -j8 weave` reproduces its fan-out and `make -k` its `fail-fast: false`, so that a
+# `make -j16 weave` reproduces its fan-out and `make -k` its `fail-fast: false`, so that a
 # crashing integrator does not cost us the remaining pages.
 PAGE_TARGETS = $(foreach problem,$(PROBLEMS),$(addprefix page/$(problem)/,$(PAGES)))
 

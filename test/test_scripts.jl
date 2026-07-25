@@ -9,6 +9,8 @@
 
 include("../src/lotka-volterra-2d-singular.jl")
 include("../src/lotka-volterra-2d-symmetric.jl")
+include("../src/massless-charged-particle-singular.jl")
+include("../src/massless-charged-particle-standard.jl")
 
 import GeometricProblems
 using DegenerateVariationalIntegrators
@@ -21,12 +23,18 @@ mktempdir() do dir
         # the energy drift diagnostic, which needs at least ten steps to have intervals.
         problem(mod) = mod.iodeproblem(; timestep = 0.01, timespan = (0.0, 1.0))
 
-        # The problem modules both export `run_list`, so they are addressed by their module.
+        # All problem modules export `run_list`, so they are addressed by their module.
         LotkaVolterra2dSingularDVI.run_list(
             problem(GeometricProblems.LotkaVolterra2dSingular), :DVI, tableaus_dvi())
 
         LotkaVolterra2dSymmetricDVI.run_list(
             problem(GeometricProblems.LotkaVolterra2dSymmetric), :TableauVPRK, tableaus_vprk_glrk())
+
+        MasslessChargedParticleSingularDVI.run_list(
+            problem(GeometricProblems.MasslessChargedParticleSingular), :DVI, tableaus_dvi())
+
+        MasslessChargedParticleStandardDVI.run_list(
+            problem(GeometricProblems.MasslessChargedParticle), :TableauVPRK, tableaus_vprk_glrk())
 
         @info "Generated pages and figures in $(dir):" readdir(dir) readdir("figures")
     end

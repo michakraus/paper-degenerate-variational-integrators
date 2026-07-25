@@ -36,6 +36,8 @@ jobs:
         problem:
           - lotka-volterra-2d-singular
           - lotka-volterra-2d-symmetric
+          - massless-charged-particle-singular
+          - massless-charged-particle-standard
         page:
           - dvi
           - srk

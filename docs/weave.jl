@@ -9,7 +9,7 @@
 # Examples:
 #
 #   julia --project=.. weave.jl lotka-volterra-2d-singular
-#   julia --project=.. weave.jl lotka-volterra-2d-singular dvi srk
+#   julia --project=.. weave.jl massless-charged-particle-singular dvi srk
 #
 
 using GeometricIntegrators
@@ -20,8 +20,10 @@ import DegenerateVariationalIntegrators as DVI
 
 # problem name (in `src/`, `weave/` and `docs/src/`) → module defined by `src/<problem>.jl`
 const PROBLEMS = (
-    "lotka-volterra-2d-singular"  => :LotkaVolterra2dSingularDVI,
-    "lotka-volterra-2d-symmetric" => :LotkaVolterra2dSymmetricDVI,
+    "lotka-volterra-2d-singular"         => :LotkaVolterra2dSingularDVI,
+    "lotka-volterra-2d-symmetric"        => :LotkaVolterra2dSymmetricDVI,
+    "massless-charged-particle-singular" => :MasslessChargedParticleSingularDVI,
+    "massless-charged-particle-standard" => :MasslessChargedParticleStandardDVI,
 )
 
 # page name → `weave/<problem>-<page>.jmd`

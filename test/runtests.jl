@@ -13,10 +13,12 @@ const tableaus = (
 
 const nt = 1
 
-# Both problem modules export `iodeproblem` and `Δt`, so they are addressed by their module.
+# All problem modules export `iodeproblem` and `Δt`, so they are addressed by their module.
 const problems = (
     GeometricProblems.LotkaVolterra2dSingular,
     GeometricProblems.LotkaVolterra2dSymmetric,
+    GeometricProblems.MasslessChargedParticleSingular,
+    GeometricProblems.MasslessChargedParticle,
 )
 
 # Integrate a single time step. A `DomainError` is a legitimate outcome for these

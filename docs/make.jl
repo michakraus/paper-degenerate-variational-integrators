@@ -29,6 +29,20 @@ makedocs(;
             "Gauss-Legendre Runge-Kutta Methods" => "lotka-volterra-2d-symmetric/lotka-volterra-2d-symmetric-firk.md",
             "Gauss-Legendre VPRK Methods" => "lotka-volterra-2d-symmetric/lotka-volterra-2d-symmetric-vprk-gauss.md",
         ],
+
+        "Massless Charged Particle (singular vector potential)" => [
+            "Degenerate Variational Integrators" => "massless-charged-particle-singular/massless-charged-particle-singular-dvi.md",
+            "Symplectic Gauss-Legendre Runge-Kutta Methods" => "massless-charged-particle-singular/massless-charged-particle-singular-srk.md",
+            "Gauss-Legendre Runge-Kutta Methods" => "massless-charged-particle-singular/massless-charged-particle-singular-firk.md",
+            "Gauss-Legendre VPRK Methods" => "massless-charged-particle-singular/massless-charged-particle-singular-vprk-gauss.md",
+        ],
+
+        "Massless Charged Particle (standard vector potential)" => [
+            "Degenerate Variational Integrators" => "massless-charged-particle-standard/massless-charged-particle-standard-dvi.md",
+            "Symplectic Gauss-Legendre Runge-Kutta Methods" => "massless-charged-particle-standard/massless-charged-particle-standard-srk.md",
+            "Gauss-Legendre Runge-Kutta Methods" => "massless-charged-particle-standard/massless-charged-particle-standard-firk.md",
+            "Gauss-Legendre VPRK Methods" => "massless-charged-particle-standard/massless-charged-particle-standard-vprk-gauss.md",
+        ],
     ],
 )
 
