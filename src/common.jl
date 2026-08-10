@@ -88,9 +88,14 @@ end
 # of the last completed step and `err` is `nothing` (success), `:nan` (NaNs in the
 # state), or the caught exception. The steps after `last_good` are padded with the last
 # good state so downstream invariant computations never see uninitialized data.
+#
+# No iteration cap is imposed on the solver: a non-convergent solve is bounded by the
+# stagnation detector of `SimpleSolvers`, which gives up after two consecutive steps that
+# leave the iterate unmoved while the residual is still large. `warn_iterations = 0` drops
+# the bare iteration-count warning, the one solver message that `verbosity` does not gate.
 function integrate_partial(iode, method)
     int     = GIB.GeometricIntegrator(iode, method; f_abstol=1E-14, f_reltol=1E-14,
-                                      max_iterations=100, verbosity=SOLVER_VERBOSITY[])
+                                      verbosity=SOLVER_VERBOSITY[], warn_iterations=0)
     sol     = GIB.Solution(iode)
     solstep = GIB.solutionstep(int, sol[0])
     state   = GIB.current(solstep)
