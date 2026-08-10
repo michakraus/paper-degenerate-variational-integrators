@@ -63,8 +63,9 @@ include(joinpath(@__DIR__, "../src/$(problem).jl"))
 # resolved at top level, i.e. after the world of the `include` above
 const mod = getfield(Main, modname)
 
-# Drop the repetitive line search and tick warnings, which otherwise make up 99% of the
-# build log; see `quiet_solver_warnings!` in src/common.jl.
+# Silence the line search of the diverging methods and the repetitive tick warnings of the
+# plotting stack, which would otherwise bury the results in the build log; see
+# `quiet_solver_warnings!` in src/common.jl.
 DVI.quiet_solver_warnings!()
 
 for page in pages
