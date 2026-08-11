@@ -36,6 +36,17 @@ mktempdir() do dir
         MasslessChargedParticleStandardDVI.run_list(
             problem(GeometricProblems.MasslessChargedParticle), :TableauVPRK, tableaus_vprk_glrk())
 
+        # The `run_poincare` wrappers, with the sample counts turned right down: the default 200
+        # loop and 231 surface points are a few hundred trajectories per method, which is a weave
+        # build, not a script run.
+        LotkaVolterra2dSingularDVI.run_poincare(
+            problem(GeometricProblems.LotkaVolterra2dSingular), :DVI, tableaus_dvi();
+            nloop = 16, nsurface = 45)
+
+        MasslessChargedParticleSingularDVI.run_poincare(
+            problem(GeometricProblems.MasslessChargedParticleSingular), :TableauVPRK,
+            tableaus_vprk_glrk(); nloop = 16, nsurface = 45)
+
         @info "Generated pages and figures in $(dir):" readdir(dir) readdir("figures")
     end
 end
