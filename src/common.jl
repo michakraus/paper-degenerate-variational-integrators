@@ -132,8 +132,26 @@ end
 #
 # No iteration cap is imposed on the solver: a non-convergent solve is bounded by the
 # stagnation detector of `SimpleSolvers`, which gives up after two consecutive steps that
-# leave the iterate unmoved while the residual is still large. `warn_iterations = 0` drops
-# the bare iteration-count warning, the one solver message that `verbosity` does not gate.
+# leave the iterate unmoved while the residual is still large, and — since
+# `GeometricIntegratorsBase` 0.6 — by its `f_stall_window = 50`, which gives up on a solve that
+# spends fifty iterations without halving its residual. That one arrives through the merge in
+# `GeometricIntegratorsBase/src/integrator.jl:47`, so it applies here without being asked for.
+# `warn_iterations = 0` drops the bare iteration-count warning, the one solver message that
+# `verbosity` does not gate.
+#
+# `f_stall_window` moves two of this package's runs, both on `LotkaVolterra2dSymmetric` and both
+# by a step or two (measured at the pages' own Δt = 0.1, over all 88 runs; the other 86 are
+# untouched, as is every run of the SPARK companion package):
+#
+#   ctdvi   4 → 5 steps, still "NaNs detected in the solution"
+#   cmdvi   3 → 5 steps, and "NaNs detected in the solution" → "solver error – non-finite
+#           direction vector"
+#
+# Giving up on the solve *earlier* buys the run *more* time steps, which reads backwards but is
+# the point of the criterion: the step is retired while its iterate is still usable, instead of
+# being pushed on until it goes non-finite and takes the state with it. The message change is a
+# second, independent effect of the same update — SimpleSolvers 0.11 rejects any non-finite
+# direction where 0.10.1 only looked for `NaN`.
 function integrate_partial(iode, method)
     int     = GIB.GeometricIntegrator(iode, method; f_abstol=1E-14, f_reltol=1E-14,
                                       verbosity=SOLVER_VERBOSITY[], warn_iterations=0)
