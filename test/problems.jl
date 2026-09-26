@@ -2,9 +2,9 @@
 # Smoke test for the weave path: `run_list` including the time step refinement of the
 # first-order methods, `integrate_partial`, and the whole CairoMakie plotting stack.
 #
-#   julia --project test/test_scripts.jl
+#   julia --project=test test/runtests.jl core
 #
-# Not part of `runtests.jl`: it is comparatively slow and produces files.
+# The pages and figures it produces go to a temporary directory.
 #
 
 include("../src/lotka-volterra-2d-singular.jl")
@@ -25,27 +25,47 @@ mktempdir() do dir
 
         # All problem modules export `run_list`, so they are addressed by their module.
         LotkaVolterra2dSingularDVI.run_list(
-            problem(GeometricProblems.LotkaVolterra2dSingular), :DVI, tableaus_dvi())
+            problem(GeometricProblems.LotkaVolterra2dSingular),
+            :DVI,
+            tableaus_dvi(),
+        )
 
         LotkaVolterra2dSymmetricDVI.run_list(
-            problem(GeometricProblems.LotkaVolterra2dSymmetric), :TableauVPRK, tableaus_vprk_glrk())
+            problem(GeometricProblems.LotkaVolterra2dSymmetric),
+            :TableauVPRK,
+            tableaus_vprk_glrk(),
+        )
 
         MasslessChargedParticleSingularDVI.run_list(
-            problem(GeometricProblems.MasslessChargedParticleSingular), :DVI, tableaus_dvi())
+            problem(GeometricProblems.MasslessChargedParticleSingular),
+            :DVI,
+            tableaus_dvi(),
+        )
 
         MasslessChargedParticleStandardDVI.run_list(
-            problem(GeometricProblems.MasslessChargedParticle), :TableauVPRK, tableaus_vprk_glrk())
+            problem(GeometricProblems.MasslessChargedParticle),
+            :TableauVPRK,
+            tableaus_vprk_glrk(),
+        )
 
         # The `run_poincare` wrappers, with the sample counts turned right down: the default 200
         # loop and 231 surface points are a few hundred trajectories per method, which is a weave
         # build, not a script run.
         LotkaVolterra2dSingularDVI.run_poincare(
-            problem(GeometricProblems.LotkaVolterra2dSingular), :DVI, tableaus_dvi();
-            nloop = 16, nsurface = 45)
+            problem(GeometricProblems.LotkaVolterra2dSingular),
+            :DVI,
+            tableaus_dvi();
+            nloop = 16,
+            nsurface = 45,
+        )
 
         MasslessChargedParticleSingularDVI.run_poincare(
-            problem(GeometricProblems.MasslessChargedParticleSingular), :TableauVPRK,
-            tableaus_vprk_glrk(); nloop = 16, nsurface = 45)
+            problem(GeometricProblems.MasslessChargedParticleSingular),
+            :TableauVPRK,
+            tableaus_vprk_glrk();
+            nloop = 16,
+            nsurface = 45,
+        )
 
         @info "Generated pages and figures in $(dir):" readdir(dir) readdir("figures")
     end
