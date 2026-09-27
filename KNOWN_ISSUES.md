@@ -1,20 +1,27 @@
 # Known issues
 
-## KI-1 · docs · Issue #1 names the wrong Aqua form
+### K1 · The body of issue #1 names the wrong Aqua form
 
-The last line of issue #1 says that `test/quality/aqua.jl` marks the check
-`stale_deps = (; broken = true)`. The file uses `stale_deps = false` and
-`@test_broken isempty(Aqua.find_stale_deps(...))  # issue #1` (`test/quality/aqua.jl:6–7`).
-Evidence: `gh issue view 1 -R michakraus/paper-degenerate-variational-integrators`.
-Fix: edit the issue body.
+- location: `test/quality/aqua.jl:6`
+- evidence: `gh issue view 1 -R michakraus/paper-degenerate-variational-integrators` says the file
+  marks the check `stale_deps = (; broken = true)`; the file uses `stale_deps = false` and
+  `@test_broken isempty(Aqua.find_stale_deps(...))  # issue #1`
+- kind: docs
+- found: 2026-09-27, part M29 critic round 1
 
-## KI-2 · defect · `integrates` accepts every `DomainError`
+### K2 · `integrates` accepts every `DomainError`, so a method that always raises one passes
 
-`test/tableau_lists.jl:28–35` (moved verbatim from `test/runtests.jl`) catches every
-`DomainError` and returns `true`. So `@test integrates(...)` fails only on another exception
-type, and a method that always raises a `DomainError` passes.
+- location: `test/tableau_lists.jl:28`
+- evidence: `test/tableau_lists.jl:28–35` catches every `DomainError` and returns `true`;
+  `@test integrates(...)` fails only on another exception type
+- kind: defect
+- found: 2026-09-27, part M29 critic round 1; the code is the same as in `test/runtests.jl` on
+  `origin/main`
 
-## KI-3 · size · The `problems` tuple is defined twice
+### K3 · The `problems` tuple is defined twice
 
-`test/tableau_lists.jl:16–21` and `test/common.jl:8–13` hold the same six-line `problems` tuple
-with the same comment. Fix: move it to `test/helpers/problems.jl` and include that from both files.
+- location: `test/tableau_lists.jl:15`
+- evidence: `test/tableau_lists.jl:15–21` and `test/common.jl:7–13` hold the same comment and
+  six-line tuple; a helper `test/helpers/problems.jl` would hold it once
+- kind: defect
+- found: 2026-09-27, part M29 critic round 1
