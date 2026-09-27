@@ -2,7 +2,7 @@
 # Smoke test for the weave path: `run_list` including the time step refinement of the
 # first-order methods, `integrate_partial`, and the whole CairoMakie plotting stack.
 #
-#   julia --project test/test_scripts.jl
+#   julia --project scripts/test_scripts.jl
 #
 # Not part of `runtests.jl`: it is comparatively slow and produces files.
 #
