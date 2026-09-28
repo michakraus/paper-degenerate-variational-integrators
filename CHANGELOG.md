@@ -14,6 +14,10 @@ failure this prevents.
 
 ### Changed
 
+- **The `[compat]` floor of GeometricIntegrators is 0.18.1**, in `Project.toml` and
+  `test/Project.toml`. GeometricIntegrators 0.18.0 requires GeometricIntegratorsBase 0.5, which
+  contradicts the floors GeometricIntegratorsBase 0.6 and SimpleSolvers 0.11, so the old floor
+  `"0.18"` could never install. Compat-only; no behaviour changes.
 - **CI runs the shared workflow of the other experiment and package repositories.** The test matrix
   is Julia `min` (the `[compat] julia` floor, 1.10) and `1` on Linux, macOS and Windows, with
   `pre` and `nightly` as advisory jobs. Coverage is uploaded from the `min` Linux job only. The
