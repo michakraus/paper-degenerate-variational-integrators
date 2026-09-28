@@ -25,5 +25,9 @@ failure this prevents.
 - **The documentation workflow is `Documenter.yml`**, formerly `Documentation.yaml`. The weave
   pipeline is unchanged; only the action versions move to the current majors. The reference in
   `docs/Makefile` uses the new name.
-- **Dependabot opens the `[compat]` bumps**, weekly, and ignores the standard libraries.
+- **Dependabot opens the `[compat]` bumps**, weekly, for the root `Project.toml` only, and ignores
+  the standard libraries.
+- **An advisory `Downgrade - ubuntu-latest` job tests the `[compat]` lower bounds.** It resolves
+  each direct dependency of the root `Project.toml` to its lower bound on the lowest Julia and runs
+  the suite there. It is not a required check.
 - **`codecov.yml`** sets the project and patch checks to a 1 % threshold.
