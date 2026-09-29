@@ -14,8 +14,13 @@ failure this prevents.
 
 ### Changed
 
+- **`test/Project.toml` no longer repeats the root's bounds.** Its `[compat]` entries for
+  GeometricIntegrators (`"0.18.1"`) and GeometricProblems (`"0.8.3, 0.9"`) are removed: a
+  dependency of the root `Project.toml` takes its bound from the root alone, and a copy in
+  `test/Project.toml` can only duplicate or narrow it. The test-only entries (Aqua, SafeTestsets)
+  stay. Compat-only; no behaviour changes.
 - **Two `[compat]` floors rise so that every floor resolves together on Julia 1.10.**
-  GeometricIntegrators is `"0.18.1"`, in `Project.toml` and `test/Project.toml`: 0.18.0 requires
+  GeometricIntegrators is `"0.18.1"`, in `Project.toml`: 0.18.0 requires
   GeometricIntegratorsBase 0.5 and SimpleSolvers 0.10, below the floors 0.6 and 0.11. Weave is
   `"0.10.11"`: up to 0.10.10 it caps Highlights at 0.4, and so DocStringExtensions at 0.8, while
   GeometricProblems 0.8.3 needs DocStringExtensions 0.9 through Symbolics 7. Compat-only; no
