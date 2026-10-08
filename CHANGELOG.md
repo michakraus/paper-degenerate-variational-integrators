@@ -14,6 +14,8 @@ failure this prevents.
 
 ### Changed
 
+- **CI uploads coverage from the `Julia 1 - ubuntu-latest` job instead of `Julia min`, and a test
+  job saves the Julia cache only when it succeeds.**
 - **`test/Project.toml` no longer repeats the root's bounds.** Its `[compat]` entries for
   GeometricIntegrators (`"0.18.1"`) and GeometricProblems (`"0.8.3, 0.9"`) are removed: a
   dependency of the root `Project.toml` takes its bound from the root alone, and a copy in
