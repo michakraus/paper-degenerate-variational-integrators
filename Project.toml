@@ -19,8 +19,8 @@ Weave = "44d3d7a6-8a23-5bf8-98c5-b353f8df5ec9"
 CairoMakie = "0.15"
 Documenter = "1"
 # These three move together: GeometricIntegrators 0.18.6 requires GeometricIntegratorsBase 0.6.9,
-# and both require SimpleSolvers 0.14.1. GeometricIntegratorsBase 0.6 adds
-# `f_stall_window = 50` to `default_options` and merges it into whatever `integrate_partial` passes;
+# and both require SimpleSolvers 0.14.1. GeometricIntegratorsBase puts
+# `f_stall_window = 50` in `default_options` and merges it into whatever `integrate_partial` passes;
 # see the note above that function in `src/common.jl`.
 GeometricIntegrators = "0.18.6"
 GeometricIntegratorsBase = "0.6.9"

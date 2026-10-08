@@ -2,7 +2,7 @@
 
 ### K1 · The body of issue #1 names the wrong Aqua form
 
-- location: `test/quality/aqua.jl:6`
+- location: `test/quality/aqua.jl:10`
 - evidence: `gh issue view 1 -R michakraus/paper-degenerate-variational-integrators` says the file
   marks the check `stale_deps = (; broken = true)`; the file uses `stale_deps = false` and
   `@test_broken isempty(Aqua.find_stale_deps(...))  # issue #1`
@@ -30,9 +30,9 @@
 - location: `src/common.jl:138`
 - evidence: `src/common.jl:138` cites `GeometricIntegratorsBase/src/integrator.jl:47`; in GIB
   0.6.5 to 0.6.9 the `merge(default_options(method, problem), options)` of the
-  `GeometricIntegrator` constructor is at line 46. `src/common.jl:142-148` give the step counts of
+  `GeometricIntegrator` constructor is at line 46. `src/common.jl:142–148` give the step counts of
   `ctdvi` and `cmdvi` measured with dependency versions older than the ones `origin/main` resolves.
   The fix names `default_options` and the `GeometricIntegrator` constructor that merges it, not a
   line number
 - kind: docs
-- found: 2026-08-14 (the citation's commit 330064b)
+- found: 2026-10-08; the citation is from commit 330064b (2026-08-14)
