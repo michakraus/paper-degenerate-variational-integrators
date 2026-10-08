@@ -14,8 +14,6 @@ failure this prevents.
 
 ### Changed
 
-- **CI uploads coverage from the `Julia 1 - ubuntu-latest` job instead of `Julia min`, and a test
-  job saves the Julia cache only when it succeeds.**
 - **`test/Project.toml` no longer repeats the root's bounds.** Its `[compat]` entries for
   GeometricIntegrators (`"0.18.1"`) and GeometricProblems (`"0.8.3, 0.9"`) are removed: a
   dependency of the root `Project.toml` takes its bound from the root alone, and a copy in
@@ -29,8 +27,8 @@ failure this prevents.
   behaviour changes.
 - **CI runs the shared workflow of the other experiment and package repositories.** The test matrix
   is Julia `min` (the `[compat] julia` floor, 1.10) and `1` on Linux, macOS and Windows, with
-  `pre` and `nightly` as advisory jobs. Coverage is uploaded from the `min` Linux job only. The
-  `lts` alias gives way to `min`, and the job names change with it, so the required checks of branch
+  `pre` and `nightly` as advisory jobs. Coverage is uploaded from the `1` Linux job only, and a
+  test job saves the Julia cache only when it succeeds. The `lts` alias gives way to `min`, and the job names change with it, so the required checks of branch
   protection can be one fixed list across all repositories. The old CI ran on every push to any
   branch; the new one runs on a push to `main` or `master`, on tags, on pull requests, and on
   manual dispatch, so a push to a topic branch without a pull request runs no CI. A new `Doctests`
