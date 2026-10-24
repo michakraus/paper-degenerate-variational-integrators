@@ -16,8 +16,10 @@ failure this prevents.
 
 - **Julia 1.12 is the floor** (`[compat] julia = "1.12"`, from 1.11). A caller on Julia 1.11 can
   no longer install this version. The persistent-tasks check of `test/quality/aqua.jl` no longer
-  raises Aqua's `tmax` to 300 s: on 1.12 the check took 20 to 25 s in three of four runs, and 31 s
-  once under a load average of 140, so the override and its comment are deleted.
+  raises Aqua's `tmax` to 300 s. `tmax` bounds only the wait for the precompile process to exit
+  after the package has loaded — Aqua's load phase is unbounded — so the check's 20 to 31 s of wall
+  clock on 1.12 never counted against the 30 s default. That shutdown took 0.9 s and 1.1 s in two
+  runs on 1.12.7, and the override and its comment are deleted.
 - **`test/Project.toml` no longer repeats the root's bounds.** Its `[compat]` entries for
   GeometricIntegrators (`"0.18.1"`) and GeometricProblems (`"0.8.3, 0.9"`) are removed: a
   dependency of the root `Project.toml` takes its bound from the root alone, and a copy in
@@ -31,7 +33,7 @@ failure this prevents.
   DocStringExtensions at 0.8, while GeometricProblems 0.9.1 needs DocStringExtensions 0.9 through
   EulerLagrange 0.5.2 and Symbolics 7. Compat-only; no behaviour changes.
 - **CI runs the shared workflow of the other experiment and package repositories.** The test matrix
-  is Julia `min` (the `[compat] julia` floor, 1.11) and `1` on Linux, macOS and Windows, with
+  is Julia `min` (the `[compat] julia` floor) and `1` on Linux, macOS and Windows, with
   `pre` and `nightly` as advisory jobs. Coverage is uploaded from the `1` Linux job only, and a
   test job saves the Julia cache only when it succeeds. The `lts` alias gives way to `min`, and the job names change with it, so the required checks of branch
   protection can be one fixed list across all repositories. The old CI ran on every push to any
