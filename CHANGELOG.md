@@ -14,6 +14,10 @@ failure this prevents.
 
 ### Changed
 
+- **Julia 1.12 is the floor** (`[compat] julia = "1.12"`, from 1.11). A caller on Julia 1.11 can
+  no longer install this version. The persistent-tasks check of `test/quality/aqua.jl` no longer
+  raises Aqua's `tmax` to 300 s: on 1.12 the check took 20 to 25 s in three of four runs, and 31 s
+  once under a load average of 140, so the override and its comment are deleted.
 - **`test/Project.toml` no longer repeats the root's bounds.** Its `[compat]` entries for
   GeometricIntegrators (`"0.18.1"`) and GeometricProblems (`"0.8.3, 0.9"`) are removed: a
   dependency of the root `Project.toml` takes its bound from the root alone, and a copy in
