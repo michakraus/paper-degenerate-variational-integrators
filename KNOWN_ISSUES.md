@@ -2,7 +2,7 @@
 
 ### K1 · The body of issue #1 names the wrong Aqua form
 
-- location: `test/quality/aqua.jl:10`
+- location: `test/quality/aqua.jl:6`
 - evidence: `gh issue view 1 -R michakraus/paper-degenerate-variational-integrators` says the file
   marks the check `stale_deps = (; broken = true)`; the file uses `stale_deps = false` and
   `@test_broken isempty(Aqua.find_stale_deps(...))  # issue #1`
