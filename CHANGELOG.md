@@ -14,6 +14,10 @@ failure this prevents.
 
 ### Changed
 
+- **`.gitignore` covers `figures/` and `symplecticity/`**, the default `PLOT_DIR` and `SYMP_DIR` of
+  `src/common.jl`, at any depth. A driver run from the repository root creates `figures/` there,
+  and `git status` no longer lists it. No file under either name is tracked.
+
 - **Julia 1.12 is the floor** (`[compat] julia = "1.12"`, from 1.11). A caller on Julia 1.11 can
   no longer install this version. The persistent-tasks check of `test/quality/aqua.jl` no longer
   raises Aqua's `tmax` to 300 s. `tmax` bounds only the wait for the precompile process to exit
