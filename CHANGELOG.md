@@ -14,6 +14,16 @@ failure this prevents.
 
 ### Changed
 
+- **The bounds rise to GeometricIntegrators `"0.19"`, GeometricIntegratorsBase `"0.7"` and
+  GeometricProblems `"0.10"`** (from `"0.18.6"`, `"0.6.9"` and `"0.9.1"`), in `Project.toml`.
+  Compat-only; no code or behaviour changes. The breaking changes of these releases do not reach this
+  package: it uses no symplectic Euler method, whose letters A and B GeometricIntegrators 0.19 and
+  GeometricIntegratorsBase 0.7 exchange, and `DVIA` and `DVIB` keep their meaning; it uses no
+  `LinearWave`, whose state GeometricProblems 0.10 changes. GeometricIntegratorsBase 0.7 still
+  puts `f_stall_window = 50` in `default_options` and merges it into the options of the
+  `GeometricIntegrator` constructor. The comment above `integrate_partial` in `src/common.jl` names
+  that merge instead of a line number of GeometricIntegratorsBase, which was wrong; K4 keeps only
+  the stale step counts of that comment.
 - **`.gitignore` covers `figures/`**, the default `PLOT_DIR` of `src/common.jl`, at any depth. A
   driver run from the repository root creates `figures/` there, and `git status` no longer lists
   it. No file under that name is tracked.

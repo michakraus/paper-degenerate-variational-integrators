@@ -10,16 +10,15 @@ import GeometricIntegratorsBase
 const GIB = GeometricIntegratorsBase
 using SimpleSolvers: NonlinearSolverException
 
-using GeometricProblems.Diagnostics: plot_energy_error, plot_energy_drift, plot_constraint_error
+using GeometricProblems.Diagnostics: plot_energy_error, plot_energy_drift,
+                                     plot_constraint_error
 
 using PoincareInvariants
-
 
 # Output directories for the figures (and, for symmetry with the SPARK companion package,
 # the symplecticity conditions, which are not computed here).
 const PLOT_DIR = "figures"
 const SYMP_DIR = "symplecticity"
-
 
 # Number of points at which the loop and the surface of the Poincaré invariants are sampled.
 # `FirstFourierPlan` takes any number of loop points; the surface's `SecondChebyshevPlan` samples at
@@ -61,27 +60,24 @@ const NSURFACE = 351
 # ten times the runtime of the whole diagnostic.
 const T_POINCARE_2ND = 20.0
 
-
 # Shared Makie plotting style (kept identical to the SRK and SPARK companion packages).
 # Larger fonts and thicker lines than the Makie defaults, tuned for the fixed figure sizes
 # of the GeometricProblems plot recipes. Unicode axis labels are selected via `latex=false`
 # on every plot call below. Activated by the module's `__init__`.
 const PLOT_THEME = Theme(
     fontsize = 18,
-    Lines    = (linewidth = 2,),
-    Scatter  = (markersize = 10,),
-    Axis     = (
-        xlabelsize     = 22,
-        ylabelsize     = 22,
+    Lines = (linewidth = 2,),
+    Scatter = (markersize = 10,),
+    Axis = (
+        xlabelsize = 22,
+        ylabelsize = 22,
         xticklabelsize = 16,
         yticklabelsize = 16,
-        titlesize      = 20,
-    ),
+        titlesize = 20
+    )
 )
 
-
 _linebreak(io) = show(io, "text/markdown", MD(Paragraph([LineBreak()])))
-
 
 # The degenerate Lagrangians make some of the methods diverge, and the Newton solver then
 # fails its line search in every iteration of every time step. Those warnings are turned off
@@ -97,7 +93,7 @@ const QUIET_LOG_COUNT = Ref(0)
 # having: `SimpleSolvers` rate-limits them to a handful per session.
 const SOLVER_VERBOSITY = Ref(1)
 
-struct QuietLogger{L<:AbstractLogger} <: AbstractLogger
+struct QuietLogger{L <: AbstractLogger} <: AbstractLogger
     parent::L
 end
 
@@ -111,8 +107,9 @@ end
 
 Logging.min_enabled_level(logger::QuietLogger) = Logging.min_enabled_level(logger.parent)
 Logging.catch_exceptions(logger::QuietLogger) = Logging.catch_exceptions(logger.parent)
-Logging.handle_message(logger::QuietLogger, args...; kwargs...) =
+function Logging.handle_message(logger::QuietLogger, args...; kwargs...)
     Logging.handle_message(logger.parent, args...; kwargs...)
+end
 
 # Turn off the solver warnings and install the filter for the plotting ones. Called by the
 # weave driver, not on load, so that interactive sessions keep the warnings unless they ask
@@ -121,7 +118,6 @@ function quiet_solver_warnings!()
     SOLVER_VERBOSITY[] = 0
     global_logger(QuietLogger(global_logger()))
 end
-
 
 # Integrate an IODE step-by-step so that a crash (solver failure, singular matrix,
 # NaNs, …) does not discard the whole run: we keep the solution up to the last
@@ -134,8 +130,9 @@ end
 # stagnation detector of `SimpleSolvers`, which gives up after two consecutive steps that
 # leave the iterate unmoved while the residual is still large, and — since
 # `GeometricIntegratorsBase` 0.6 — by its `f_stall_window = 50`, which gives up on a solve that
-# spends fifty iterations without halving its residual. That one arrives through the merge in
-# `GeometricIntegratorsBase/src/integrator.jl:47`, so it applies here without being asked for.
+# spends fifty iterations without halving its residual. That one is part of `default_options`,
+# which the `GeometricIntegrator` constructor merges into the options passed here, so it applies
+# here without being asked for.
 # `warn_iterations = 0` drops the bare iteration-count warning, the one solver message that
 # `verbosity` does not gate.
 #
@@ -153,12 +150,12 @@ end
 # second, independent effect of the same update — SimpleSolvers 0.11 rejects any non-finite
 # direction where 0.10.1 only looked for `NaN`.
 function integrate_partial(iode, method)
-    int     = GIB.GeometricIntegrator(iode, method; f_abstol=1E-14, f_reltol=1E-14,
-                                      verbosity=SOLVER_VERBOSITY[], warn_iterations=0)
-    sol     = GIB.Solution(iode)
+    int = GIB.GeometricIntegrator(iode, method; f_abstol = 1E-14, f_reltol = 1E-14,
+        verbosity = SOLVER_VERBOSITY[], warn_iterations = 0)
+    sol = GIB.Solution(iode)
     solstep = GIB.solutionstep(int, sol[0])
-    state   = GIB.current(solstep)
-    nt      = GIB.ntime(sol)
+    state = GIB.current(solstep)
+    nt = GIB.ntime(sol)
 
     last_good = 0
     err = nothing
@@ -178,7 +175,7 @@ function integrate_partial(iode, method)
         err = ex
     end
 
-    for n in (last_good+1):nt
+    for n in (last_good + 1):nt
         sol.q[n] = copy(sol.q[last_good])
         sol.p[n] = copy(sol.p[last_good])
     end
@@ -186,15 +183,13 @@ function integrate_partial(iode, method)
     (sol, last_good, err)
 end
 
-
 # Short, human-readable one-line description of a crash (no stack trace).
 function _failure_message(err)
-    err === :nan                      && return "NaNs detected in the solution"
-    err isa NonlinearSolverException  && return "solver error – " * err.msg
-    err isa DomainError               && return "domain error"
+    err === :nan && return "NaNs detected in the solution"
+    err isa NonlinearSolverException && return "solver error – " * err.msg
+    err isa DomainError && return "domain error"
     return string(nameof(typeof(err)))
 end
-
 
 # Reference a figure, but only if it was actually produced: a run that crashed early has no
 # energy drift data, and one that crashed on the very first step has no figures at all.
@@ -209,16 +204,15 @@ function _plot_figure_md(file, name, filename)
     true
 end
 
-
 # Write the page collecting all figures of one run. Must be called *after* `run_integrator`,
 # so that the figures it references already exist on disk.
 function write_plots(dir, file, name, fig_suff)
-
     plot_file = file * ".md"
     omitted = 0
 
     open(plot_file, "w") do f
-        figure(suffix) = _plot_figure_md(f, name, "$(dir)/$(file)$(suffix)$(fig_suff)") || (omitted += 1)
+        figure(suffix) = _plot_figure_md(f, name, "$(dir)/$(file)$(suffix)$(fig_suff)") ||
+                         (omitted += 1)
 
         show(f, "text/markdown", Markdown.parse("# $name"))
         _linebreak(f)
@@ -238,11 +232,11 @@ function write_plots(dir, file, name, fig_suff)
         figure("_constraint_error")
     end
 
-    omitted > 0 && @warn("Omitted $(omitted) figures from $(plot_file) that were not produced")
+    omitted > 0 &&
+        @warn("Omitted $(omitted) figures from $(plot_file) that were not produced")
 
     nothing
 end
-
 
 # Save the figure produced by `plot` as `<dir>/<file><suffix><fig_suff>`. A failure is
 # reported but not propagated: one diagnostic that cannot be plotted (which happens for
@@ -252,12 +246,11 @@ function _save_plot(plot, dir, file, suffix, fig_suff)
         save(dir * "/" * file * suffix * fig_suff, plot())
     catch ex
         show(stdout, "text/markdown",
-             Markdown.parse("**Plotting $(file)$(suffix) failed: $(_failure_message(ex)).**"))
+            Markdown.parse("**Plotting $(file)$(suffix) failed: $(_failure_message(ex)).**"))
         _linebreak(stdout)
         @warn("Plotting $(file)$(suffix) failed: $(_failure_message(ex))")
     end
 end
-
 
 # Plot the solution up to time step `last_good` (`:auto` plots the whole solution). All
 # time-trace panels are limited to `last_good` and share the full-tspan x-axis, so a
@@ -269,15 +262,19 @@ function make_plots(sol, equ, recipes, dir, file, fig_suff, last_good)
         mkdir(dir)
     end
 
-    nt      = ntime(sol)
-    ntplot  = last_good ≥ nt ? (:auto) : last_good
+    nt = ntime(sol)
+    ntplot = last_good ≥ nt ? (:auto) : last_good
 
     # All GeometricProblems recipes set their own x-limits to the plotted time range, so no
     # post-processing is needed here.
-    _save_plot(() -> recipes.solution(sol, equ; latex=false, nt=ntplot), dir, file, "", fig_suff)
-    _save_plot(() -> recipes.phase_portrait(sol; latex=false, nt=ntplot), dir, file, "_solution", fig_suff)
-    _save_plot(() -> recipes.traces(sol, equ; latex=false, nt=ntplot), dir, file, "_traces", fig_suff)
-    _save_plot(() -> plot_energy_error(sol; latex=false, nt=ntplot), dir, file, "_energy_error", fig_suff)
+    _save_plot(() -> recipes.solution(sol, equ; latex = false, nt = ntplot),
+        dir, file, "", fig_suff)
+    _save_plot(() -> recipes.phase_portrait(sol; latex = false, nt = ntplot),
+        dir, file, "_solution", fig_suff)
+    _save_plot(() -> recipes.traces(sol, equ; latex = false, nt = ntplot),
+        dir, file, "_traces", fig_suff)
+    _save_plot(() -> plot_energy_error(sol; latex = false, nt = ntplot),
+        dir, file, "_energy_error", fig_suff)
 
     # Drift is an interval-based diagnostic: `plot_energy_drift` splits the solution into ten
     # intervals and its `nt` counts those, not time steps. Show only the intervals completed
@@ -285,22 +282,23 @@ function make_plots(sol, equ, recipes, dir, file, fig_suff, last_good)
     # show and its degenerate x-range throws. Solutions shorter than ten steps have no
     # intervals at all and make the recipe divide by zero (which happens in local tests only).
     interval = max(div(nt, 10), 1)
-    ntdrift  = last_good ≥ nt ? (:auto) : div(last_good, interval)
+    ntdrift = last_good ≥ nt ? (:auto) : div(last_good, interval)
 
     if nt ≥ 10 && (ntdrift === :auto || ntdrift ≥ 2)
-        _save_plot(() -> plot_energy_drift(sol; latex=false, nt=ntdrift), dir, file, "_energy_drift", fig_suff)
+        _save_plot(() -> plot_energy_drift(sol; latex = false, nt = ntdrift),
+            dir, file, "_energy_drift", fig_suff)
     end
 
-    _save_plot(() -> plot_constraint_error(sol; latex=false, nt=ntplot), dir, file, "_constraint_error", fig_suff)
+    _save_plot(() -> plot_constraint_error(sol; latex = false, nt = ntplot),
+        dir, file, "_constraint_error", fig_suff)
 end
-
 
 function run_integrator(iode, method, recipes, dir, file, fig_suff)
     sol, last_good, err = integrate_partial(iode, method)
 
     if err !== nothing
         show(stdout, "text/markdown",
-             Markdown.parse("**Simulation crashed after $(last_good) of $(ntime(sol)) time steps: $(_failure_message(err)).**"))
+            Markdown.parse("**Simulation crashed after $(last_good) of $(ntime(sol)) time steps: $(_failure_message(err)).**"))
         _linebreak(stdout)
         @warn("Simulation crashed after $(last_good) of $(ntime(sol)) time steps: $(_failure_message(err))")
     end
@@ -311,24 +309,21 @@ function run_integrator(iode, method, recipes, dir, file, fig_suff)
     end
 end
 
-
 # Headline of a single run. `DVRK` wraps an inner tableau (e.g. `DVRK(Gauss(1))`), which is
 # shown explicitly; the degenerate variational integrators of the paper (`DVIA`, `DVIB`,
 # `CTDVI`, `CMDVI`) have no tableau at all, in which case `tableau` returns `missing`; every
 # other method is shown as `Name(s)` (e.g. `VPRKGauss(2)`, `Gauss(2)`). `DVRK` is itself a
 # `DVIMethod`, so it has to be matched first.
 function _headline(method)
-    method isa DVRK             && return "DVRK($(tableau(method).name)($(tableau(method).s)))"
+    method isa DVRK && return "DVRK($(tableau(method).name)($(tableau(method).s)))"
     tableau(method) === missing && return "$(nameof(typeof(method)))"
     return "$(nameof(typeof(method)))($(tableau(method).s))"
 end
 
-
 # `recipes` comes first so that the problem modules in `src/<problem>.jl` can bind it with a
 # one-line wrapper `run_list(args...; kwargs...) = DVI.run_list(PLOT_RECIPES, args...; kwargs...)`.
 function run_list(recipes, iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYMP_DIR;
-                    fig_suff = ".png")
-
+        fig_suff = ".png")
     for run in list
         method, file = run[1], run[2]
 
@@ -337,7 +332,7 @@ function run_list(recipes, iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYM
         # element of the list entry gives that refinement factor; `similar` retains
         # everything else of the problem, in particular its time span, so that the number of
         # time steps grows by the same factor.
-        factor  = length(run) ≥ 3 ? run[3] : 1
+        factor = length(run) ≥ 3 ? run[3] : 1
         problem = factor == 1 ? iode : similar(iode; timestep = timestep(iode) / factor)
 
         headline = _headline(method) * (factor == 1 ? "" : " with Δt/$(factor)")
@@ -355,7 +350,8 @@ function run_list(recipes, iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYM
         write_plots(plot_dir, file, name, fig_suff)
 
         overview = "$plot_dir/$file$fig_suff"
-        isfile(overview) && show(stdout, "text/markdown", Markdown.parse("![$name]($overview)"))
+        isfile(overview) &&
+            show(stdout, "text/markdown", Markdown.parse("![$name]($overview)"))
 
         # Each run leaves a set of Makie figures behind; collecting them here keeps the peak
         # footprint of a whole method family within what a CI runner can hold.
@@ -368,7 +364,6 @@ function run_list(recipes, iode, name, list, plot_dir = PLOT_DIR, symp_dir = SYM
 
     nothing
 end
-
 
 # Advect the sampled loop or surface and evaluate the Poincaré invariant along the way.
 #
@@ -403,7 +398,6 @@ function invariant_error(pinv, iode, method, init)
     (ts, compute!(pinv, trajectories, ts, parameters(iode)), last_good, ntime(sols[begin]))
 end
 
-
 # Restrict a problem to the first `T` units of its time interval, keeping its time step, so that
 # the two invariants of a run can be evaluated over different spans. `nothing` leaves the problem
 # alone, and so does a `T` the problem does not reach — which is what keeps the short runs of the
@@ -415,15 +409,14 @@ function _horizon(prob, T)
     T ≥ t₁ - t₀ ? prob : similar(prob; timespan = (t₀, t₀ + T))
 end
 
-
 # Relative error of a Poincaré invariant over time, in the style of
 # `PoincareInvariants.plot_invariant`: linear axes, scatter, dashed zero line. That function
 # cannot be used directly, as it takes an `EnsembleSolution`, which the per-member integration
 # above deliberately does not build.
 function plot_invariant_error(ts, Is, symbol, title)
     fig = Figure()
-    ax  = Axis(fig[1, 1]; xlabel = "t", title = title,
-               ylabel = "Relative Error ($(symbol)(t)-$(symbol)(0))/$(symbol)(0)")
+    ax = Axis(fig[1, 1]; xlabel = "t", title = title,
+        ylabel = "Relative Error ($(symbol)(t)-$(symbol)(0))/$(symbol)(0)")
 
     hlines!(ax, [0.0]; color = :gray, linestyle = :dash)
     scatter!(ax, ts, (Is .- Is[begin]) ./ Is[begin])
@@ -431,7 +424,6 @@ function plot_invariant_error(ts, Is, symbol, title)
 
     fig
 end
-
 
 # The first and second Poincaré invariant of every method in `list`, over the same time step as
 # the trajectory diagnostics of `run_list` but a much shorter time interval: one run advects a
@@ -443,22 +435,21 @@ end
 # with a one-line wrapper. It is a named tuple `(loop, surface, first, second)` of the problem's
 # phase space parameterisations and invariant constructors, all four supplied by GeometricProblems.
 function run_poincare(spec, iode, name, list, plot_dir = PLOT_DIR;
-                        fig_suff = ".png", nloop = NLOOP, nsurface = NSURFACE,
-                        t_2nd = T_POINCARE_2ND)
-
+        fig_suff = ".png", nloop = NLOOP, nsurface = NSURFACE,
+        t_2nd = T_POINCARE_2ND)
     isdir(plot_dir) || mkpath(plot_dir)
 
     # One invariant object for the whole list: it depends on the problem's one- or two-form and on
     # the number of sample points only, not on the method that advects those points. The last
     # element is the time interval to evaluate it over, `nothing` meaning the problem's own; see
     # `T_POINCARE_2ND` for why the second invariant gets a shorter one.
-    invariants = (("_poincare_1st", "I₁", spec.first(nloop),     spec.loop,    nothing),
-                  ("_poincare_2nd", "I₂", spec.second(nsurface), spec.surface, t_2nd))
+    invariants = (("_poincare_1st", "I₁", spec.first(nloop), spec.loop, nothing),
+        ("_poincare_2nd", "I₂", spec.second(nsurface), spec.surface, t_2nd))
 
     for run in list
         method, file = run[1], run[2]
 
-        factor  = length(run) ≥ 3 ? run[3] : 1
+        factor = length(run) ≥ 3 ? run[3] : 1
         problem = factor == 1 ? iode : similar(iode; timestep = timestep(iode) / factor)
 
         headline = _headline(method) * (factor == 1 ? "" : " with Δt/$(factor)")
@@ -473,7 +464,7 @@ function run_poincare(spec, iode, name, list, plot_dir = PLOT_DIR;
 
             if result === nothing
                 show(stdout, "text/markdown",
-                     Markdown.parse("**No $(symbol): the ensemble crashed on its first time step.**"))
+                    Markdown.parse("**No $(symbol): the ensemble crashed on its first time step.**"))
                 _linebreak(stdout)
                 continue
             end
@@ -482,13 +473,13 @@ function run_poincare(spec, iode, name, list, plot_dir = PLOT_DIR;
 
             if last_good < nt
                 show(stdout, "text/markdown",
-                     Markdown.parse("**$(symbol) shown over the first $(last_good) of $(nt) time steps: " *
-                                    "at least one member of the ensemble crashed.**"))
+                    Markdown.parse("**$(symbol) shown over the first $(last_good) of $(nt) time steps: " *
+                                   "at least one member of the ensemble crashed.**"))
                 _linebreak(stdout)
             end
 
             _save_plot(() -> plot_invariant_error(ts, Is, symbol, headline),
-                       plot_dir, file, suffix, fig_suff)
+                plot_dir, file, suffix, fig_suff)
 
             _plot_figure_md(stdout, name, "$plot_dir/$file$suffix$fig_suff")
         end

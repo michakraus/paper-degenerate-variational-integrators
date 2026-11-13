@@ -25,14 +25,10 @@
 - kind: defect
 - found: 2026-09-27
 
-### K4 · The solver-options comment cites a stale GIB line and stale step counts
+### K4 · The solver-options comment gives stale step counts
 
-- location: `src/common.jl:138`
-- evidence: `src/common.jl:138` cites `GeometricIntegratorsBase/src/integrator.jl:47`; in GIB
-  0.6.5 to 0.6.9 the `merge(default_options(method, problem), options)` of the
-  `GeometricIntegrator` constructor is at line 46. `src/common.jl:142–148` give the step counts of
-  `ctdvi` and `cmdvi` measured with dependency versions older than the ones `origin/main` resolves.
-  The fix names `default_options` and the `GeometricIntegrator` constructor that merges it, not a
-  line number
+- location: `src/common.jl:143`
+- evidence: `src/common.jl:143–149` give the step counts of `ctdvi` and `cmdvi` measured with
+  dependency versions older than the ones `origin/main` resolves
 - kind: docs
-- found: 2026-10-08; the citation is from commit 330064b (2026-08-14)
+- found: 2026-10-08; the step counts are from commit 330064b (2026-08-14)
